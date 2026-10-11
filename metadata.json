@@ -1,0 +1,7 @@
+{
+  "name": "Oval Studio - AI App Workspace",
+  "description": "Platform AI lengkap untuk Image Generator, Animasi Studio, Film Studio, Oval Design Prompt Engine, dan Teks to Suara (TTS).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
