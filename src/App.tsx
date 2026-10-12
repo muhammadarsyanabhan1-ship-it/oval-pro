@@ -4,9 +4,7 @@ import {
   OPTIONS, 
   getMimeTypeFromBase64, 
   getBase64DataOnly, 
-  fetchGeminiContent,
-  getGeminiApiKey,
-  setGeminiApiKey
+  getApiUrl 
 } from './types.tsx';
 import { ImageCropperModal } from './components/ImageCropperModal.tsx';
 import { TTSModule } from './components/TTSModule.tsx';
@@ -39,8 +37,6 @@ export default function App() {
   const [activeAppMenu, setActiveAppMenu] = useState('prompt');
   const [activeOutputTab, setActiveOutputTab] = useState('image-prompt');
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(getGeminiApiKey());
 
   const [productImgs, setProductImgs] = useState<any[]>([null, null, null]);
   const [charType, setCharType] = useState('none'); 
@@ -224,7 +220,15 @@ Context:
         }
       };
 
-      const data = await fetchGeminiContent('v1beta/models/gemini-3.8-flash:generateContent', payload);
+      const apiUrl = getApiUrl('v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
+      const data = await response.json();
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!rawText) throw new Error("No response from AI");
 
@@ -239,12 +243,7 @@ Context:
       showToast('Semua prompt & copywriting berhasil dibuat!', 'success');
     } catch (err: any) {
       console.error(err);
-      if (err.message === 'API_KEY_REQUIRED') {
-        setShowKeyModal(true);
-        showToast('Kunci Gemini API diperlukan. Silakan masukkan kunci API.', 'info');
-      } else {
-        showToast(err.message || 'Gagal menghasilkan prompt. Silakan coba lagi.', 'error');
-      }
+      showToast(err.message || 'Gagal menghasilkan prompt. Silakan coba lagi.', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -389,19 +388,9 @@ ${hashtagsText}
           ))}
         </nav>
         
-        <div className="p-4 border-t border-white/10 space-y-3">
-          <button
-            onClick={() => { setApiKeyInput(getGeminiApiKey()); setShowKeyModal(true); }}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-slate-300 transition-colors border border-white/5 cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <Icons.Pen className="w-3.5 h-3.5 text-purple-400" />
-              <span>Pengaturan API Key</span>
-            </span>
-            <span className={`w-2 h-2 rounded-full ${getGeminiApiKey() ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-          </button>
-          <div className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
-            <p className="text-[11px] text-slate-400 font-medium mb-1">Mode Kerja</p>
+        <div className="p-4 border-t border-white/10">
+          <div className="bg-white/5 rounded-xl p-4 text-center border border-white/10">
+            <p className="text-xs text-slate-400 font-medium mb-1">Mode Kerja</p>
             <div className="flex items-center justify-center space-x-2 text-[11px] text-purple-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
               <span>Direct Prompt Engine</span>
@@ -425,22 +414,13 @@ ${hashtagsText}
           </div>
           <h1 className="text-white font-bold text-sm">OVAL STUDIO</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => { setApiKeyInput(getGeminiApiKey()); setShowKeyModal(true); }}
-            className="p-1.5 bg-white/5 rounded-lg border border-white/10 text-xs text-purple-400"
-            title="Pengaturan API Key"
-          >
-            <Icons.Pen className="w-3.5 h-3.5" />
-          </button>
-          <select 
-            className="bg-black/40 border border-white/10 rounded-lg p-1.5 text-xs text-slate-200 outline-none max-w-[130px]"
-            value={activeAppMenu}
-            onChange={(e) => setActiveAppMenu(e.target.value)}
-          >
-            {APP_MENUS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-          </select>
-        </div>
+        <select 
+          className="bg-black/40 border border-white/10 rounded-lg p-1.5 text-xs text-slate-200 outline-none max-w-[140px]"
+          value={activeAppMenu}
+          onChange={(e) => setActiveAppMenu(e.target.value)}
+        >
+          {APP_MENUS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+        </select>
       </div>
 
       <main className="flex-1 flex flex-col relative h-full overflow-hidden bg-[#050505] pt-16 md:pt-0">
@@ -928,64 +908,6 @@ ${hashtagsText}
           type={toast.type} 
           onClose={() => setToast(null)} 
         />
-      )}
-
-      {showKeyModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-white text-base flex items-center gap-2">
-                <Icons.Pen className="w-4 h-4 text-purple-400" /> Pengaturan Gemini API Key
-              </h3>
-              <button onClick={() => setShowKeyModal(false)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Jika aplikasi dijalankan di deployment publik (seperti Vercel atau domain Anda sendiri), Anda dapat menyimpan Gemini API Key Anda di sini. Kunci tersimpan secara lokal dan aman di browser Anda.
-            </p>
-            <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase block mb-1.5">Gemini API Key</label>
-              <input 
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="AIzaSy..."
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-purple-500 font-mono"
-              />
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              {apiKeyInput && (
-                <button
-                  onClick={() => {
-                    setGeminiApiKey('');
-                    setApiKeyInput('');
-                    showToast('API Key telah dihapus dari browser.', 'info');
-                  }}
-                  className="text-xs text-rose-400 hover:underline cursor-pointer"
-                >
-                  Hapus Kunci
-                </button>
-              )}
-              <div className="flex gap-2 ml-auto">
-                <button 
-                  onClick={() => setShowKeyModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-slate-300 hover:bg-white/5 cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button 
-                  onClick={() => {
-                    setGeminiApiKey(apiKeyInput);
-                    setShowKeyModal(false);
-                    showToast('API Key berhasil disimpan!', 'success');
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-600/20 cursor-pointer"
-                >
-                  Simpan Kunci
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       <style dangerouslySetInnerHTML={{__html: `
