@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Icons, loadFromDB, saveToDB, getApiUrl } from '../types.tsx';
+import { Icons, loadFromDB, saveToDB, fetchGeminiContent } from '../types.tsx';
 
 export const AnimationModule = ({ showToast }: { showToast: (msg: string, type?: string) => void }) => {
   const [projects, setProjects] = useState<any[]>([]);
@@ -91,12 +91,7 @@ export const AnimationModule = ({ showToast }: { showToast: (msg: string, type?:
     if (schema) {
       payload.generationConfig.responseSchema = schema;
     }
-    const apiUrl = getApiUrl('v1beta/models/gemini-3.8-flash:generateContent');
-    const response = await fetch(apiUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-    });
-    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-    const data = await response.json();
+    const data = await fetchGeminiContent('v1beta/models/gemini-3.8-flash:generateContent', payload);
     return JSON.parse(data.candidates[0].content.parts[0].text);
   };
 
