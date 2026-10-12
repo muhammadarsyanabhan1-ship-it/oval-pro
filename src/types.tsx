@@ -280,7 +280,81 @@ export const loadFromDB = async (key: string): Promise<any> => {
   }
 };
 
+export const getGeminiApiKey = (): string => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('oval_gemini_api_key');
+    if (saved) return saved.trim();
+  }
+  const procKey = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : '';
+  const viteKey = typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_GEMINI_API_KEY : '';
+  return (procKey || viteKey || '').trim();
+};
+
+export const setGeminiApiKey = (key: string) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('oval_gemini_api_key', key.trim());
+  }
+};
+
+export async function fetchGeminiContent(endpoint: string, payload: any): Promise<any> {
+  const apiKey = getGeminiApiKey();
+
+  // Try server proxy first (works in preview / dev / Node environments)
+  try {
+    const proxyUrl = `/api/gemini/${endpoint}`;
+    const proxyResp = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // If proxy returned 405 (Method Not Allowed on Vercel static), 404, or HTML error page:
+    const contentType = proxyResp.headers.get('content-type') || '';
+    if (proxyResp.status === 405 || proxyResp.status === 404 || contentType.includes('text/html')) {
+      console.warn(`Proxy returned ${proxyResp.status}, falling back to direct Google API call...`);
+      return await callDirectGemini(endpoint, payload, apiKey);
+    }
+
+    if (!proxyResp.ok) {
+      const errData = await proxyResp.json().catch(() => ({}));
+      // If server reports missing key but client has one, try direct
+      if (errData?.error?.status === 'MISSING_API_KEY' && apiKey) {
+        return await callDirectGemini(endpoint, payload, apiKey);
+      }
+      throw new Error(errData?.error?.message || `API Error: ${proxyResp.status}`);
+    }
+
+    return await proxyResp.json();
+  } catch (err: any) {
+    if (
+      err.message?.includes('405') || 
+      err.message?.includes('Failed to fetch') || 
+      err.message?.includes('404') ||
+      err.message?.includes('MISSING_API_KEY')
+    ) {
+      return await callDirectGemini(endpoint, payload, apiKey);
+    }
+    throw err;
+  }
+}
+
+async function callDirectGemini(endpoint: string, payload: any, apiKey: string): Promise<any> {
+  if (!apiKey) {
+    throw new Error('API_KEY_REQUIRED');
+  }
+  const directUrl = `https://generativelanguage.googleapis.com/${endpoint}?key=${apiKey}`;
+  const response = await fetch(directUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData?.error?.message || `API Error: ${response.status}`);
+  }
+  return await response.json();
+}
+
 export function getApiUrl(endpoint: string): string {
-  // Uses server-side proxy which automatically injects GEMINI_API_KEY
   return `/api/gemini/${endpoint}`;
 }

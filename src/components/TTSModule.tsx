@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { INDONESIAN_VOICES, STYLE_PRESETS, SPEED_OPTIONS, base64ToArrayBuffer, pcmToWav, getApiUrl } from '../types.tsx';
+import { INDONESIAN_VOICES, STYLE_PRESETS, SPEED_OPTIONS, base64ToArrayBuffer, pcmToWav, fetchGeminiContent } from '../types.tsx';
 
 export const TTSModule = () => {
   const [script, setScript] = useState('');
@@ -51,17 +51,10 @@ export const TTSModule = () => {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: apiVoiceId } }
           }
         },
-        model: "gemini-2.5-flash-preview-tts"
+        model: "gemini-3.8-flash-tts"
       };
       
-      const apiUrl = getApiUrl('v1beta/models/gemini-2.5-flash-preview-tts:generateContent');
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const result = await response.json();
+      const result = await fetchGeminiContent('v1beta/models/gemini-3.8-flash-tts:generateContent', payload);
       
       if (result.error) throw new Error(result.error.message || "Failed to generate audio");
       

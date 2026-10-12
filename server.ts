@@ -58,10 +58,12 @@ app.all('/api/gemini/*', async (req, res) => {
     // If model is not found (404), try suitable fallback models
     if (response.status === 404 && subPath.includes('models/')) {
       const fallbackMap: Record<string, string[]> = {
-        'gemini-3-flash-preview': ['gemini-2.5-flash', 'gemini-2.0-flash'],
-        'gemini-2.5-flash-preview-09-2025': ['gemini-2.5-flash', 'gemini-2.0-flash'],
-        'gemini-3.1-flash-image': ['imagen-3.0-generate-002', 'gemini-2.0-flash-exp'],
-        'gemini-2.5-flash-preview-tts': ['gemini-2.0-flash']
+        'gemini-3-flash-preview': ['gemini-3.8-flash', 'gemini-1.5-flash'],
+        'gemini-2.5-flash-preview-09-2025': ['gemini-3.8-flash', 'gemini-1.5-flash'],
+        'gemini-2.5-flash': ['gemini-3.8-flash', 'gemini-1.5-flash'],
+        'gemini-2.0-flash': ['gemini-3.8-flash', 'gemini-1.5-flash'],
+        'gemini-3.1-flash-image': ['gemini-3.8-flash', 'imagen-3.0-generate-002'],
+        'gemini-2.5-flash-preview-tts': ['gemini-3.8-flash-tts']
       };
 
       for (const [target, alternatives] of Object.entries(fallbackMap)) {

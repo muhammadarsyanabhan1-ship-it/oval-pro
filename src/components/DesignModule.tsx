@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getApiUrl } from '../types.tsx';
+import { fetchGeminiContent } from '../types.tsx';
 
 export const DesignModule = ({ showToast }: { showToast: (msg: string, type?: string) => void }) => {
   const [idea, setIdea] = useState('');
@@ -89,13 +89,8 @@ SELURUH OUTPUT (Judul, Hook, Deskripsi, Tags, Hashtags) HARUS DITULIS DALAM BAHA
       systemInstruction: { parts: [{ text: systemPrompt }] }
     };
 
-    const apiUrl = getApiUrl('v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent');
-
     try {
-      const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
-      const result = await response.json();
+      const result = await fetchGeminiContent('v1beta/models/gemini-3.8-flash:generateContent', payload);
       const data = JSON.parse(result.candidates[0].content.parts[0].text);
       setYtData(data);
       setSelectedYtTitles([0]);
@@ -192,18 +187,8 @@ Berikan penjelasan singkat (dalam Bahasa Indonesia) tentang mengapa prompt terse
       systemInstruction: { parts: [{ text: systemPrompt }] }
     };
 
-    const apiUrl = getApiUrl('v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent');
-
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const result = await response.json();
+      const result = await fetchGeminiContent('v1beta/models/gemini-3.8-flash:generateContent', payload);
       if (result.candidates && result.candidates[0]?.content?.parts[0]) {
         const data = JSON.parse(result.candidates[0].content.parts[0].text);
         
